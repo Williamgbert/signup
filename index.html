@@ -1,0 +1,309 @@
+import React, { useState } from 'react';
+import { Download, Calendar, MapPin, Clock, Users } from 'lucide-react';
+
+const ExcelClassSignup = () => {
+  const [registrations, setRegistrations] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    department: '',
+    supervisor: '',
+    supervisorApproval: false
+  });
+  const [errors, setErrors] = useState({});
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (!formData.department.trim()) newErrors.department = 'Department is required';
+    if (!formData.supervisor.trim()) newErrors.supervisor = 'Supervisor name is required';
+    if (!formData.supervisorApproval) newErrors.supervisorApproval = 'Supervisor approval confirmation is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    const newRegistration = {
+      ...formData,
+      registrationDate: new Date().toISOString(),
+      id: Date.now()
+    };
+    
+    setRegistrations(prev => [...prev, newRegistration]);
+    setFormData({
+      name: '',
+      email: '',
+      department: '',
+      supervisor: '',
+      supervisorApproval: false
+    });
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const exportToCSV = () => {
+    if (registrations.length === 0) {
+      alert('No registrations to export');
+      return;
+    }
+
+    const headers = ['Name', 'Email', 'Department', 'Supervisor', 'Registration Date'];
+    const csvContent = [
+      headers.join(','),
+      ...registrations.map(reg => [
+        `"${reg.name}"`,
+        `"${reg.email}"`,
+        `"${reg.department}"`,
+        `"${reg.supervisor}"`,
+        `"${new Date(reg.registrationDate).toLocaleDateString()}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'excel_class_registrations.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToExcel = () => {
+    if (registrations.length === 0) {
+      alert('No registrations to export');
+      return;
+    }
+
+    // Create Excel-like format with tabs
+    const headers = ['Name', 'Email', 'Department', 'Supervisor', 'Registration Date'];
+    const excelContent = [
+      headers.join('\t'),
+      ...registrations.map(reg => [
+        reg.name,
+        reg.email,
+        reg.department,
+        reg.supervisor,
+        new Date(reg.registrationDate).toLocaleDateString()
+      ].join('\t'))
+    ].join('\n');
+
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'excel_class_registrations.xls');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Excel-erate Your Skills</h1>
+          <p className="text-gray-600 mb-6">New to Excel or need a refresher? Get hands-on with the basics: formatting, formulas, and functions that make your work easier and cleaner.</p>
+          
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-blue-500" />
+              <span>Thursday, September 17th</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-green-500" />
+              <span>9:00 AM</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-5 h-5 text-red-500" />
+              <span>First Floor Conference Room</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Registration Form */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Register for Class</h2>
+            
+            {showSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p className="text-green-800">✓ Registration successful! You're signed up for Excel-erate Your Skills.</p>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your full name"
+                />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email address"
+                />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Department *
+                </label>
+                <input
+                  type="text"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.department ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your department"
+                />
+                {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Supervisor *
+                </label>
+                <input
+                  type="text"
+                  name="supervisor"
+                  value={formData.supervisor}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.supervisor ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your supervisor's name"
+                />
+                {errors.supervisor && <p className="text-red-500 text-sm mt-1">{errors.supervisor}</p>}
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="supervisorApproval"
+                  name="supervisorApproval"
+                  checked={formData.supervisorApproval}
+                  onChange={handleInputChange}
+                  className={`mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${
+                    errors.supervisorApproval ? 'border-red-500' : ''
+                  }`}
+                />
+                <label htmlFor="supervisorApproval" className="text-sm text-gray-700">
+                  I confirm that my supervisor has approved my attendance at this professional development class. *
+                </label>
+              </div>
+              {errors.supervisorApproval && (
+                <p className="text-red-500 text-sm">{errors.supervisorApproval}</p>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
+              >
+                Register for Class
+              </button>
+            </div>
+          </div>
+
+          {/* Registration Summary */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Registrations</h3>
+              <div className="flex items-center space-x-1">
+                <Users className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-600">{registrations.length}</span>
+              </div>
+            </div>
+
+            {registrations.length > 0 && (
+              <div className="space-y-4">
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {registrations.slice(-5).map(reg => (
+                    <div key={reg.id} className="bg-gray-50 rounded p-3 text-sm">
+                      <div className="font-medium">{reg.name}</div>
+                      <div className="text-gray-600">{reg.department}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={exportToCSV}
+                    className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-200 text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Export CSV</span>
+                  </button>
+                  
+                  <button
+                    onClick={exportToExcel}
+                    className="w-full flex items-center justify-center space-x-2 bg-emerald-600 text-white py-2 px-4 rounded hover:bg-emerald-700 transition duration-200 text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Export Excel</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {registrations.length === 0 && (
+              <p className="text-gray-500 text-sm text-center py-8">No registrations yet</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ExcelClassSignup;
